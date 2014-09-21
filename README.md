@@ -1,4 +1,16 @@
 lha-tools
 =========
 
-tools for extracting amiga lha archives for fs-uae supporting protection flags and filenotes
+amigaextractor.py
+-----------------
+Python module for dealing with python-lhafile at a higher level
+
+
+lha.py
+------
+Extract archives using the command line
+
+
+lha-app.py + lha-app.ui
+-----------------------
+Lha extact application
