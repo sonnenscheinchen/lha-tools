@@ -1,66 +1,67 @@
 #!/usr/bin/env python3
 
+import argparse
 from amigaextractor import LhaExtractor
 import sys
 
-target_dir = '.'
-verbose = False
-app_name = sys.argv[0]
-args = sys.argv[1:]
+uaem = 'uaem'
 
+parser = argparse.ArgumentParser(description="Amiga command line archive\
+extractor supporting FS-UAE Amiga emulator",\
+                                 formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('command', help='''
+x   eXtract archive
+e   extract archive without paths
+l   list archive contents
+v   verbose list archive
+t   test archive
 
-def usage(app_name=app_name):
-    print('usage: lha [-]{xelv[vfi]}[w=<dir>] archive_file [file...]')
-    print('commands:                          options:')
-    print(' x   EXtract from archive')
-    print(' e   Extract without paths')
-    print(' l,v List / Verbose List')
-    print(' t   Test file CRC in archive')
-    print()
-    print()
-    print()
+''', choices='xelvt')
+parse_uaem = parser.add_argument_group('FS-UAE meta file options')
+parse_uaem.add_argument('-a', '--always',\
+                        help='always write .uaem files (default: auto)',\
+                        action='store_const',\
+                        const='always', default='auto', dest=uaem)
+parse_uaem.add_argument('-n', '--never', help='never write .uaem files',\
+                        action='store_const', const='never', default='auto',\
+                        dest=uaem)
+parser.add_argument('archive', help='LHA archive', type=argparse.FileType('r'))
+parser.add_argument('files', help='files to extract (optional)', nargs='*')
+parser.add_argument('-d', '--dest', help='destination directory', default='.')
+parser.add_argument('-f', '--force', help='overwrite existing files',\
+                    action="store_true")
+parser.add_argument('-v', '--verbose', help='verbose output',\
+                    action="store_true")
+
+args = parser.parse_args()
+
+lha = LhaExtractor(args.archive.name)
+
+if args.command == 'l':
+    lha.list_files()
     quit()
-
-
-if not args or args[0].strip('-') not in ('x', 'e', 'l', 'v', 't'):
-    sys.stderr.write('Missing or wrong command.\n')
-    usage()
-else:
-    arg_command = args.pop(0)
-
-try:
-    archive_name = args.pop(0)
-except IndexError:
-    sys.stderr.write('Missing archive name.\n')
-    usage()
-
-for arg in args:
-    if arg.startswith('w='):
-        target_dir = arg[2:]
-    elif arg == '-v':
-        verbose = True
-
-print(args)
-print(target_dir)
-print(verbose)
-print(arg_command)
-print(archive_name)
-
-lha = LhaExtractor(archive_name)
-
-ok = True
-if arg_command == 'x':
-    ok, reason = lha.extract(dest=target_dir, use_paths=True, verbose=True)
-elif arg_command == 'e':
-    ok, reason = lha.extract(dest=target_dir, use_paths=False, verbose=True)
-
-if not ok:
-    sys.stderr.write('Error extracting archive: {0}'.format(reason))
-    quit(1)
-
-if arg_command == 'l':
-    lha.printdir()
-elif arg_command == 'v':
+elif args.command == 'v':
     lha.list_files(verbose=True)
-elif arg_command == 't':
+    quit()
+elif args.command == 't':
     lha.testlha()
+    quit()
+elif args.command == 'e':
+    use_paths = False
+elif args.command == 'x':
+    use_paths = True
+
+if not args.files:
+    ok, reason = lha.extract(dest=args.dest, use_paths=use_paths,\
+                             verbose=args.verbose, uaem=args.uaem,\
+                             overwrite=args.force)
+else:
+    for xfile in args.files:
+        ok, reason = lha.extract(filename=xfile, dest=args.dest,\
+                                 use_paths=use_paths, verbose=args.verbose,\
+                                 uaem=args.uaem, overwrite=args.force)
+        if not ok:
+            break
+if not ok:
+    sys.stderr.write('Error extracting archive: {0}\n'.format(reason))
+    quit(1)
