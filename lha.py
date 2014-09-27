@@ -52,16 +52,13 @@ elif args.command == 'x':
     use_paths = True
 
 if not args.files:
-    ok, reason = lha.extract(dest=args.dest, use_paths=use_paths,\
-                             verbose=args.verbose, uaem=args.uaem,\
-                             overwrite=args.force)
-else:
-    for xfile in args.files:
-        ok, reason = lha.extract(filename=xfile, dest=args.dest,\
-                                 use_paths=use_paths, verbose=args.verbose,\
-                                 uaem=args.uaem, overwrite=args.force)
-        if not ok:
-            break
+    args.files.append(None)
+for xfile in args.files:
+    ok, reason = lha.extract(filename=xfile, dest=args.dest,\
+                                use_paths=use_paths, verbose=args.verbose,\
+                                uaem=args.uaem, overwrite=args.force)
+    if not ok:
+        break
 if not ok:
     sys.stderr.write('Error extracting archive: {0}\n'.format(reason))
     quit(1)
