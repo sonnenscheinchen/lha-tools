@@ -7,13 +7,10 @@ import pdb
 
 class LhaExtractor(LhaFile):
 
-    def __init__(self, lha_file_name):
-        self.lha_file_name = lha_file_name
-        self.lha_file = LhaFile(lha_file_name)
-        super(LhaExtractor, self).__init__(lha_file_name)
-
+    def __init__(self, lha_file_name, *args, **kwargs):
+        super().__init__(lha_file_name, *args, **kwargs)
         self.total_file_size = self.total_compress_size = 0
-        for file in self.lha_file.filelist:
+        for file in self.filelist:
             self.total_file_size += file.file_size
             self.total_compress_size += file.compress_size
         self.total_ratio = self.total_compress_size * 100 / (
@@ -22,13 +19,13 @@ class LhaExtractor(LhaFile):
 
     def list_files(self, verbose=False):
         if not verbose:
-            for file in self.lha_file.namelist():
+            for file in self.namelist():
                 print(file)
             return
-        num_files = len(self.lha_file.filelist)
+        num_files = len(self.filelist)
         print(' PACKED  SIZE   RATIO  METHOD CRC       STAMP           PERM        NAME')
         print('------- ------- ------ ---------- ------------------- -------- --------------')
-        for file in self.lha_file.filelist:
+        for file in self.filelist:
             ratio = file.compress_size * 100 / (
                 file.file_size if file.file_size else 1)
             print(str(file.compress_size).rjust(7), end=' ')
@@ -50,7 +47,7 @@ class LhaExtractor(LhaFile):
 
     def extract(self, filename=None, uaem='auto',
                 dest='.', use_paths=True, overwrite=False, verbose=False):
-        if filename and filename not in self.lha_file.namelist():
+        if filename and filename not in self.namelist():
             raise FileNotFoundError('File not found in archive')
         if uaem not in ('auto', 'always', 'never'):
             raise ValueError('uaem must be auto, always or never')
@@ -58,7 +55,7 @@ class LhaExtractor(LhaFile):
         if not os.path.isdir(target_dir):
             raise FileNotFoundError('Target directory does not exist.')
         if not filename:
-            files_to_extract = self.lha_file.namelist()
+            files_to_extract = self.namelist()
         else:
             files_to_extract = [filename]
         for file_to_extract in files_to_extract:
@@ -76,13 +73,13 @@ class LhaExtractor(LhaFile):
                 #continue
                 return False, '{0} already exists.'.format(target_file)
             try:
-                data = self.lha_file.read(file_to_extract)
+                data = self.read(file_to_extract)
             except Exception as e:
                 return False, e.args[0]
             with open(target_file, 'wb') as output_file:
                 output_file.write(data)
-            filenote = self.lha_file.NameToInfo[file_to_extract].comment or ''
-            protection_flags = self.lha_file.NameToInfo[
+            filenote = self.NameToInfo[file_to_extract].comment or ''
+            protection_flags = self.NameToInfo[
                 file_to_extract].flag_bits or '----rwed'
             write_flags = False
             if uaem == 'always':
@@ -93,7 +90,7 @@ class LhaExtractor(LhaFile):
                 if protection_flags != '----rwed':
                     write_flags = True
             if write_flags:
-                file_date = self.lha_file.NameToInfo[
+                file_date = self.NameToInfo[
                     file_to_extract].date_time.strftime('%F %T.00')
                 uaem_string = '{0} {1} {2}\n'.format(
                     protection_flags, file_date, filenote)
@@ -107,10 +104,10 @@ class LhaExtractor(LhaFile):
 
     def testlha(self):
         is_ok = True
-        for file_to_test in self.lha_file.namelist():
+        for file_to_test in self.namelist():
             print(file_to_test, end=' --> ')
             try:
-                data = self.lha_file.read(file_to_test)
+                data = self.read(file_to_test)
             except Exception as e:
                 print(e.args[0])
                 is_ok = False
