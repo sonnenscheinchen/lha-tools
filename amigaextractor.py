@@ -71,24 +71,23 @@ class LhaExtractor(LhaFile):
         else:
             files_to_extract = [filename]
         for file_to_extract in files_to_extract:
+            xfile = file_to_extract.replace('\\', os.sep).replace('/', os.sep)
             if not use_paths:
-                target_file = os.path.join(
-                    target_dir, file_to_extract.split('\\')[-1].split('/')[-1])
+                target_file = os.path.join(target_dir, os.path.basename(xfile))
             else:
-                target_file = os.path.join(
-                    target_dir, os.sep.join(file_to_extract.split('\\')))
+                target_file = os.path.join(target_dir, xfile)
                 os.makedirs(os.path.dirname(target_file), exist_ok=True)
             if verbose:
                 print(target_file)
             if not overwrite and os.path.isfile(target_file):
                 continue
-            try:
-                data = self.read(file_to_extract)
-            except Exception as e:
-                return False, e.args[0]
-            with open(target_file, 'wb') as output_file:
-                output_file.write(data)
-
+            if not self.NameToInfo[file_to_extract].directory == file_to_extract:
+                try:
+                    data = self.read(file_to_extract)
+                except Exception as e:
+                    return False, e.args[0]
+                with open(target_file, 'wb') as output_file:
+                    output_file.write(data)
             if uaem == 'always':
                 self.__write_metadata(file_to_extract, target_file, force=True)
             elif uaem == 'auto':
